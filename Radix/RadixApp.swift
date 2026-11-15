@@ -10,8 +10,9 @@ struct RadixApp: App {
     private let issueReportURL = URL(string: "https://github.com/colinvkim/Radix/issues/new/choose")
 
     init() {
+        // This fork does not take Sparkle updates from tryradix.app. Pull upstream changes with git.
         let updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: false,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
