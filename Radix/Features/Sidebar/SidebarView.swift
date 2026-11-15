@@ -6,6 +6,8 @@ struct SidebarActions {
     let removeRecentTarget: (ScanTarget) -> Void
     let reviewDiscardPile: () -> Void
     let addDroppedNodesToDiscardPile: ([FileNodeRecord.ID], UUID) -> Bool
+    /// Shows a cleanup category, or nil to return to the scan.
+    let selectCleanup: (CleanupCategory?) -> Void
 }
 
 struct SidebarView: View {
@@ -15,15 +17,22 @@ struct SidebarView: View {
     let discardPileSummary: DiscardPileSummary
     let discardPileDragIsActive: Bool
     let actions: SidebarActions
+    @ObservedObject var cleanup: CleanupModel
+    let activeCleanup: CleanupCategory?
 
     @State private var discardPileDropIsTargeted = false
 
     private var selection: Binding<String?> {
         Binding(
-            get: { model.activeTargetID },
+            get: { activeCleanup?.sidebarID ?? model.activeTargetID },
             set: { newValue in
-                guard let newValue,
-                      newValue != model.activeTargetID else { return }
+                guard let newValue else { return }
+                if let category = CleanupCategory(sidebarID: newValue) {
+                    actions.selectCleanup(category)
+                    return
+                }
+                if activeCleanup != nil { actions.selectCleanup(nil) }
+                guard newValue != model.activeTargetID else { return }
                 actions.selectTargetAfterViewUpdate(newValue)
             }
         )
@@ -58,6 +67,8 @@ struct SidebarView: View {
                         }
                     }
                 }
+
+                CleanupSidebarSection(cleanup: cleanup)
             }
             .listStyle(.sidebar)
 

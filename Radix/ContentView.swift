@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var isDiscardPileUndoContext = false
     @State private var discardPileDragMonitorTask: Task<Void, Never>?
     @StateObject private var tourPresentation = WorkspaceTourPresentation()
+    @StateObject private var cleanup = CleanupModel()
+    @State private var cleanupCategory: CleanupCategory?
     @FocusState private var focusedWorkspaceTarget: WorkspaceFocusTarget?
 
     var body: some View {
@@ -26,10 +28,15 @@ struct ContentView: View {
                 scanState: appModel.scanState,
                 discardPileSummary: discardPileSnapshot.summary,
                 discardPileDragIsActive: discardPileDragIsActive,
-                actions: sidebarActions
+                actions: sidebarActions,
+                cleanup: cleanup,
+                activeCleanup: cleanupCategory
             )
                 .navigationSplitViewColumnWidth(min: 230, ideal: 260, max: 320)
         } detail: {
+            if let cleanupCategory {
+                CleanupView(category: cleanupCategory, cleanup: cleanup)
+            } else {
             WorkspaceDetailView(
                 scanState: appModel.scanState,
                 navigation: appModel.navigation,
@@ -58,6 +65,7 @@ struct ContentView: View {
             .id(appModel.workspaceTourSessionID)
             .overlay(alignment: .topTrailing) {
                 WorkspaceTourCard(tour: appModel.workspaceTour, presentation: tourPresentation)
+            }
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -610,6 +618,10 @@ private extension ContentView {
             addDroppedNodesToDiscardPile: { nodeIDs, snapshotID in
                 defer { discardPileDragDidEnd() }
                 return appModel.addNodeIDsToDiscardPile(nodeIDs, snapshotID: snapshotID)
+            },
+            selectCleanup: { category in
+                cleanupCategory = category
+                updateInspectorPresentation(hasSnapshot: appModel.scanState.snapshot != nil)
             }
         )
     }
@@ -740,12 +752,12 @@ private extension ContentView {
     }
 
     var canPresentInspector: Bool {
-        appModel.scanState.snapshot != nil && appModel.scanComparison == nil
+        appModel.scanState.snapshot != nil && appModel.scanComparison == nil && cleanupCategory == nil
     }
 
     func updateInspectorPresentation(hasSnapshot: Bool) {
         setInspectorPresented(
-            prefersInspectorPresented && hasSnapshot && appModel.scanComparison == nil
+            prefersInspectorPresented && hasSnapshot && appModel.scanComparison == nil && cleanupCategory == nil
         )
     }
 
